@@ -1,0 +1,44 @@
+-- Script: OptimizeGameForPlayer
+-- Chạy trên LocalScript để chỉ ảnh hưởng đến người chơi hiện tại
+
+-- Xoá các mô hình không quan trọng để giảm tải
+local function removeUnnecessaryModels()
+    local player = game.Players.LocalPlayer
+    local camera = workspace.CurrentCamera
+
+    -- Lọc qua tất cả các đối tượng trong workspace
+    for _, obj in ipairs(workspace:GetChildren()) do
+        -- Kiểm tra nếu đối tượng là Model và không phải là đối tượng cần thiết
+        if obj:IsA("Model") and not obj:FindFirstChild("PrimaryPart") then
+            obj:Destroy()  -- Xoá đối tượng
+        end
+    end
+end
+
+-- Tắt các hiệu ứng không cần thiết
+local function disableEffects()
+    local player = game.Players.LocalPlayer
+    local camera = workspace.CurrentCamera
+
+    -- Ví dụ tắt ánh sáng, hiệu ứng, hay mờ
+    for _, light in ipairs(workspace:GetDescendants()) do
+        if light:IsA("Light") then
+            light.Enabled = false
+        end
+    end
+
+    -- Tắt các hiệu ứng đặc biệt trên camera
+    if camera:FindFirstChild("BloomEffect") then
+        camera.BloomEffect.Enabled = false
+    end
+
+    if camera:FindFirstChild("ColorCorrectionEffect") then
+        camera.ColorCorrectionEffect.Enabled = false
+    end
+end
+
+-- Thực thi các hàm tối ưu hóa
+removeUnnecessaryModels()
+disableEffects()
+
+print("Game optimized for better performance.")
