@@ -1,0 +1,52 @@
+-- Script: OptimizeGameForPlayer
+-- Chạy trên LocalScript để chỉ ảnh hưởng đến người chơi hiện tại
+
+-- Tắt các hiệu ứng ánh sáng và các hiệu ứng không cần thiết
+local function disableUnnecessaryEffects()
+    local camera = workspace.CurrentCamera
+
+    -- Tắt các hiệu ứng ánh sáng trong workspace
+    for _, light in ipairs(workspace:GetDescendants()) do
+        if light:IsA("Light") then
+            light.Enabled = false
+        end
+    end
+
+    -- Tắt các hiệu ứng đặc biệt trên camera
+    if camera:FindFirstChild("BloomEffect") then
+        camera.BloomEffect.Enabled = false
+    end
+
+    if camera:FindFirstChild("ColorCorrectionEffect") then
+        camera.ColorCorrectionEffect.Enabled = false
+    end
+
+    if camera:FindFirstChild("DepthOfFieldEffect") then
+        camera.DepthOfFieldEffect.Enabled = false
+    end
+
+    if camera:FindFirstChild("MotionBlurEffect") then
+        camera.MotionBlurEffect.Enabled = false
+    end
+end
+
+-- Tăng hiệu suất bằng cách giảm độ phân giải và điều chỉnh các thiết lập đồ họa
+local function optimizeGraphicsSettings()
+    local player = game.Players.LocalPlayer
+    local settings = userSettings():GetService("UserGameSettings")
+
+    -- Giảm độ phân giải nếu có tùy chọn
+    settings.ResolutionScale = 0.5 -- Giảm độ phân giải xuống 50% (có thể điều chỉnh tùy thuộc vào nhu cầu)
+
+    -- Giảm chất lượng đồ họa nếu có tùy chọn
+    settings.GraphicsQuality = 1 -- Chọn mức đồ họa thấp nhất (1) - có thể điều chỉnh từ 1 đến 10
+
+    -- Tắt các hiệu ứng khác có thể ảnh hưởng đến hiệu suất
+    settings.StreamingEnabled = false -- Tắt tính năng streaming nếu không cần thiết
+end
+
+-- Gọi các hàm tối ưu hóa
+disableUnnecessaryEffects()
+optimizeGraphicsSettings()
+
+print("Game optimized for better performance.")
