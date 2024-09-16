@@ -1,0 +1,53 @@
+-- Script: OptimizeModelsForPlayer
+-- Chạy trên LocalScript để chỉ ảnh hưởng đến người chơi hiện tại
+
+-- Hàm để giảm chi tiết của mô hình
+local function reduceModelDetails()
+    local player = game.Players.LocalPlayer
+
+    -- Lọc qua tất cả các đối tượng trong workspace
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("MeshPart") or obj:IsA("Part") then
+            -- Chỉ thay đổi các thuộc tính nếu nó thực sự cần thiết
+            if obj:IsA("MeshPart") then
+                if obj.TextureID ~= "" then
+                    obj.TextureID = "" -- Xóa texture nếu đã được thiết lập (giảm tải nhẹ)
+                end
+                if obj.Material ~= Enum.Material.SmoothPlastic then
+                    obj.Material = Enum.Material.SmoothPlastic -- Chọn vật liệu đơn giản hơn
+                end
+            end
+
+            -- Chỉ thay đổi độ trong suốt cho các mô hình lớn hoặc xa
+            if obj.Size.Magnitude > 50 then -- Nếu kích thước của mô hình lớn hơn 50 studs
+                if obj.Transparency ~= 0.5 then
+                    obj.Transparency = 0.5 -- Tăng độ trong suốt để giảm chi tiết hiển thị
+                end
+            end
+        end
+    end
+end
+
+-- Hàm để tối ưu hóa các hiệu ứng ánh sáng
+local function optimizeLighting()
+    local lighting = game:GetService("Lighting")
+
+    -- Giảm độ chi tiết ánh sáng chỉ khi cần thiết
+    if lighting.Brightness > 1 then
+        lighting.Brightness = 1 -- Giảm độ sáng nếu nó quá cao
+    end
+
+    if lighting.FogStart > 1000 then
+        lighting.FogStart = 1000 -- Điều chỉnh bắt đầu của fog nếu nó quá cao
+    end
+
+    if lighting.FogEnd > 5000 then
+        lighting.FogEnd = 5000 -- Điều chỉnh kết thúc của fog nếu nó quá cao
+    end
+end
+
+-- Thực thi các hàm tối ưu hóa
+reduceModelDetails()
+optimizeLighting()
+
+print("Models and lighting optimized for better performance.")
