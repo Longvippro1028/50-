@@ -1,0 +1,38 @@
+local player = game.Players.LocalPlayer
+local replicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Đảm bảo các cài đặt đồ họa ở mức thấp
+settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+
+-- Xóa bỏ các hiệu ứng không cần thiết
+for _, obj in ipairs(workspace:GetDescendants()) do
+    if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") then
+        obj.Enabled = false
+    end
+end
+
+-- Tắt bóng đổ
+game.Lighting.GlobalShadows = false
+game.Lighting.FogEnd = 9e9
+
+-- Giảm khoảng cách tải
+player.CameraMaxZoomDistance = 50
+
+-- Giảm các hiệu ứng hình ảnh từ các vật thể
+local function removeUnnecessaryEffects()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("Part") or obj:IsA("MeshPart") then
+            obj.CastShadow = false
+            obj.Material = Enum.Material.SmoothPlastic
+        end
+    end
+end
+
+removeUnnecessaryEffects()
+
+-- Tắt hiệu ứng Ambient Occlusion nếu có
+if game.Lighting:FindFirstChild("AmbientOcclusion") then
+    game.Lighting.AmbientOcclusion.Enabled = false
+end
+
+print("Đã kích hoạt script giảm lag.")
