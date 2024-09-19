@@ -1,0 +1,108 @@
+-- LocalScript placed in StarterGui
+
+local StarterGui = game:GetService("StarterGui")
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local runService = game:GetService("RunService")
+
+-- Function to display a success message
+local function displaySuccessMessage()
+    StarterGui:SetCore("ChatMakeSystemMessage", {
+        Text = "Khởi chạy thành công",
+        Color = Color3.fromRGB(0, 255, 0),
+        Font = Enum.Font.SourceSansBold,
+        FontSize = Enum.FontSize.Size24,
+    })
+end
+
+-- Function to clear the success message
+local function removeMessage()
+    wait(5)  -- Wait for 5 seconds
+    StarterGui:SetCore("ChatMakeSystemMessage", {
+        Text = "",  -- Clear message by sending an empty text
+        Color = Color3.fromRGB(0, 0, 0),
+        Font = Enum.Font.SourceSansBold,
+        FontSize = Enum.FontSize.Size24,
+    })
+end
+
+-- Display and then remove the success message
+displaySuccessMessage()
+spawn(removeMessage)  -- Use spawn to avoid freezing the script
+
+-- Below is the original lag reduction script
+
+-- Đảm bảo các cài đặt đồ họa ở mức thấp
+settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+
+-- Xóa bỏ các hiệu ứng không cần thiết
+for _, obj in ipairs(workspace:GetDescendants()) do
+    if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") then
+        obj.Enabled = false
+    end
+end
+
+-- Tắt bóng đổ
+game.Lighting.GlobalShadows = false
+game.Lighting.FogEnd = 9e9
+
+-- Giảm khoảng cách tải
+player.CameraMaxZoomDistance = 50
+
+-- Giảm các hiệu ứng hình ảnh từ các vật thể
+local function removeUnnecessaryEffects()
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("Part") or obj:IsA("MeshPart") then
+            obj.CastShadow = false
+            obj.Material = Enum.Material.SmoothPlastic
+        end
+    end
+end
+
+removeUnnecessaryEffects()
+
+-- Tắt hiệu ứng Ambient Occlusion nếu có
+if game.Lighting:FindFirstChild("AmbientOcclusion") then
+    game.Lighting.AmbientOcclusion.Enabled = false
+end
+
+print("Đã kích hoạt script giảm lag.")
+
+
+-- Thêm hiển thị % máu còn lại trên đầu
+local function createHealthDisplay()
+    local billboardGui = Instance.new("BillboardGui")
+    billboardGui.Name = "HealthDisplay"
+    billboardGui.Adornee = character:WaitForChild("Head")  -- Gắn vào đầu nhân vật
+    billboardGui.Size = UDim2.new(2, 0, 1, 0)
+    billboardGui.StudsOffset = Vector3.new(0, 2, 0)
+    billboardGui.AlwaysOnTop = true
+
+    local healthLabel = Instance.new("TextLabel")
+    healthLabel.Size = UDim2.new(1, 0, 1, 0)
+    healthLabel.BackgroundTransparency = 1
+    healthLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+    healthLabel.TextScaled = true
+    healthLabel.Font = Enum.Font.SourceSansBold
+    healthLabel.Parent = billboardGui
+
+    billboardGui.Parent = character
+
+    -- Cập nhật % máu còn lại
+    runService.Heartbeat:Connect(function()
+        local healthPercent = math.floor((humanoid.Health / humanoid.MaxHealth) * 100)
+        healthLabel.Text = tostring(healthPercent) .. "%"
+    end)
+end
+
+-- Gọi hàm tạo hiển thị % máu trên đầu
+createHealthDisplay()
+
+-- Đảm bảo rằng script theo dõi sự thay đổi nhân vật nếu người chơi respawn
+player.CharacterAdded:Connect(function(newCharacter)
+    character = newCharacter
+    humanoid = character:WaitForChild("Humanoid")
+    createHealthDisplay()
+end)
