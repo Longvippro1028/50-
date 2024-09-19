@@ -1,0 +1,192 @@
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = player.PlayerGui
+
+local toggleMenuButton = Instance.new("TextButton")
+toggleMenuButton.Size = UDim2.new(0, 75, 0, 38)
+toggleMenuButton.Position = UDim2.new(0, 10, 0, 10)
+toggleMenuButton.Text = "Menu"
+toggleMenuButton.Parent = screenGui
+
+local teleportButton = Instance.new("TextButton")
+teleportButton.Size = UDim2.new(0, 75, 0, 38)
+teleportButton.Position = UDim2.new(0, 10, 0, 60)
+teleportButton.Text = "Teleport On"
+teleportButton.Parent = screenGui
+
+local stopTeleportButton = Instance.new("TextButton")
+stopTeleportButton.Size = UDim2.new(0, 75, 0, 38)
+stopTeleportButton.Position = UDim2.new(0, 100, 0, 60)
+stopTeleportButton.Text = "Teleport Off"
+stopTeleportButton.Parent = screenGui
+
+local oldButton = Instance.new("TextButton")
+oldButton.Size = UDim2.new(0, 75, 0, 38)
+oldButton.Position = UDim2.new(0, 10, 0, 110)
+oldButton.Text = "Old"
+oldButton.Parent = screenGui
+
+local flyDownButton = Instance.new("TextButton")
+flyDownButton.Size = UDim2.new(0, 75, 0, 38)
+flyDownButton.Position = UDim2.new(0, 100, 0, 10)
+flyDownButton.Text = "Bay Xuống"
+flyDownButton.Parent = screenGui
+
+local increaseDistanceButton = Instance.new("TextButton")
+increaseDistanceButton.Size = UDim2.new(0, 75, 0, 38)
+increaseDistanceButton.Position = UDim2.new(0, 10, 0, 160)
+increaseDistanceButton.Text = "+"
+increaseDistanceButton.Parent = screenGui
+
+local decreaseDistanceButton = Instance.new("TextButton")
+decreaseDistanceButton.Size = UDim2.new(0, 75, 0, 38)
+decreaseDistanceButton.Position = UDim2.new(0, 100, 0, 160)
+decreaseDistanceButton.Text = "-"
+decreaseDistanceButton.Parent = screenGui
+
+-- Nút "GimTele" mới
+local gimTeleButton = Instance.new("TextButton")
+gimTeleButton.Size = UDim2.new(0, 75, 0, 38)
+gimTeleButton.Position = UDim2.new(0, 100, 0, 110)
+gimTeleButton.Text = "GimTele"
+gimTeleButton.Parent = screenGui
+
+local isTeleporting = false
+local teleportConnection
+local distanceBehind = 5
+local lastPosition = humanoidRootPart.Position
+local isHovering = false
+local hoverConnection
+local savedPosition = humanoidRootPart.Position -- Tọa độ lưu trữ cho "GimTele"
+
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+
+    for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
+        if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local distance = (character.HumanoidRootPart.Position - otherPlayer.Character.HumanoidRootPart.Position).magnitude
+            if distance < shortestDistance then
+                closestPlayer = otherPlayer
+                shortestDistance = distance
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+local function teleportBehindPlayer()
+    local closestPlayer = getClosestPlayer()
+    if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local targetHumanoidRootPart = closestPlayer.Character.HumanoidRootPart
+        local targetLookVector = targetHumanoidRootPart.CFrame.LookVector
+        local behindPosition = targetHumanoidRootPart.Position - (targetLookVector * distanceBehind)
+
+        humanoidRootPart.CFrame = CFrame.new(behindPosition, targetHumanoidRootPart.Position)
+    end
+end
+
+local function startTeleporting()
+    lastPosition = humanoidRootPart.Position
+    isTeleporting = true
+    teleportConnection = game:GetService("RunService").Heartbeat:Connect(function()
+        if isTeleporting then
+            teleportBehindPlayer()
+        end
+    end)
+end
+
+local function stopTeleporting()
+    isTeleporting = false
+    if teleportConnection then
+        teleportConnection:Disconnect()
+    end
+end
+
+local function returnToLastPosition()
+    humanoidRootPart.CFrame = CFrame.new(lastPosition, lastPosition + humanoidRootPart.CFrame.LookVector)
+end
+
+-- Hàm xử lý nút "Old" - đưa nhân vật trở về tọa độ đã lưu
+local function handleOldButton()
+    stopTeleporting() -- Ngừng dịch chuyển
+    humanoidRootPart.CFrame = CFrame.new(savedPosition) -- Trả nhân vật về tọa độ đã lưu
+end
+
+-- Hàm lưu tọa độ hiện tại khi ấn "GimTele"
+local function handleGimTele()
+    savedPosition = humanoidRootPart.Position -- Lưu tọa độ hiện tại
+end
+
+-- Hàm làm nhân vật lơ lửng
+local function startHovering()
+    isHovering = true
+    hoverConnection = game:GetService("RunService").Heartbeat:Connect(function()
+        if isHovering then
+            humanoidRootPart.Velocity = Vector3.new(0, 0, 0) -- Giữ nguyên vị trí lơ lửng
+            humanoidRootPart.Anchored = true
+        end
+    end)
+end
+
+-- Hàm tắt lơ lửng
+local function stopHovering()
+    isHovering = false
+    if hoverConnection then
+        hoverConnection:Disconnect()
+    end
+    humanoidRootPart.Anchored = false
+end
+
+-- Bay xuống - giảm toạ độ Y 100 đơn vị trước, sau đó làm nhân vật lơ lửng và tắt dịch chuyển
+local function flyDown()
+    stopTeleporting() -- Tắt dịch chuyển khi bay xuống
+    local currentPosition = humanoidRootPart.Position
+    humanoidRootPart.CFrame = CFrame.new(currentPosition.X, currentPosition.Y - 300, currentPosition.Z) -- Giảm tọa độ Y 100 đơn vị
+    wait(0.5) -- Đợi một chút trước khi lơ lửng
+    startHovering() -- Sau đó làm lơ lửng
+end
+
+-- Dừng bay - tắt lơ lửng và tăng toạ độ Y 110 đơn vị
+local function stopFly()
+    stopHovering() -- Tắt lơ lửng
+    local currentPosition = humanoidRootPart.Position
+    humanoidRootPart.CFrame = CFrame.new(currentPosition.X, currentPosition.Y + 320, currentPosition.Z) -- Tăng tọa độ Y 110 đơn vị
+end
+
+local function increaseDistance()
+    distanceBehind = distanceBehind + 0.5
+end
+
+local function decreaseDistance()
+    distanceBehind = distanceBehind - 0.5
+end
+
+toggleMenuButton.MouseButton1Click:Connect(function()
+    screenGui.Enabled = not screenGui.Enabled
+end)
+
+teleportButton.MouseButton1Click:Connect(startTeleporting)
+stopTeleportButton.MouseButton1Click:Connect(stopTeleporting)
+oldButton.MouseButton1Click:Connect(handleOldButton)
+
+-- Nút "Bay Xuống" sẽ giảm tọa độ Y 100 đơn vị, sau đó làm nhân vật lơ lửng và tắt dịch chuyển
+flyDownButton.MouseButton1Click:Connect(function()
+    if flyDownButton.Text == "Bay Xuống" then
+        flyDown() -- Giảm tọa độ Y trước, rồi lơ lửng và tắt dịch chuyển
+        flyDownButton.Text = "Dừng Bay"
+    else
+        stopFly() -- Cộng tọa độ Y và tắt lơ lửng
+        flyDownButton.Text = "Bay Xuống"
+    end
+end)
+
+-- Nút "GimTele" lưu tọa độ hiện tại
+gimTeleButton.MouseButton1Click:Connect(handleGimTele)
+
+increaseDistanceButton.MouseButton1Click:Connect(increaseDistance)
+decreaseDistanceButton.MouseButton1Click:Connect(decreaseDistance)
