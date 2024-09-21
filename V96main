@@ -1,0 +1,157 @@
+-- Script Name: Combined Script
+-- Description: Combines teleportation, hovering mechanics, and GUI controls for Roblox.
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+local humanoid = character:WaitForChild("Humanoid")
+local runService = game:GetService("RunService")
+
+-- Variables for teleportation and hovering
+local isTeleporting = false
+local teleportConnection
+local distanceBehind = 5
+local lastPosition = humanoidRootPart.Position
+local savedPosition = humanoidRootPart.Position -- Stored coordinates for "GimTele"
+local originalPosition = humanoidRootPart.CFrame
+
+-- GUI setup
+local screenGui = Instance.new("ScreenGui", player.PlayerGui)
+
+local toggleMenuButton = Instance.new("TextButton", screenGui)
+toggleMenuButton.Size = UDim2.new(0, 75, 0, 38)
+toggleMenuButton.Position = UDim2.new(0, 10, 0, 10)
+toggleMenuButton.Text = "Menu"
+
+local teleportButton = Instance.new("TextButton", screenGui)
+teleportButton.Size = UDim2.new(0, 75, 0, 38)
+teleportButton.Position = UDim2.new(0, 10, 0, 60)  -- Position for Teleport On
+teleportButton.Text = "Teleport On"
+
+local stopTeleportButton = Instance.new("TextButton", screenGui)
+stopTeleportButton.Size = UDim2.new(0, 75, 0, 38)
+stopTeleportButton.Position = UDim2.new(0, 100, 0, 60)
+stopTeleportButton.Text = "Teleport Off"
+
+local oldButton = Instance.new("TextButton", screenGui)
+oldButton.Size = UDim2.new(0, 75, 0, 38)
+oldButton.Position = UDim2.new(0, 10, 0, 110)
+oldButton.Text = "Old"
+
+local increaseDistanceButton = Instance.new("TextButton", screenGui)
+increaseDistanceButton.Size = UDim2.new(0, 75, 0, 38)
+increaseDistanceButton.Position = UDim2.new(0, 10, 0, 160)
+increaseDistanceButton.Text = "+"
+
+local decreaseDistanceButton = Instance.new("TextButton", screenGui)
+decreaseDistanceButton.Size = UDim2.new(0, 75, 0, 38)
+decreaseDistanceButton.Position = UDim2.new(0, 100, 0, 160)
+decreaseDistanceButton.Text = "-"
+
+local teleportGUIButton = Instance.new("TextButton", screenGui)
+teleportGUIButton.Size = UDim2.new(0, 75, 0, 38)  -- Button size remains the same
+teleportGUIButton.Position = UDim2.new(0, 100, 0, 110)  -- Position for Teleport
+teleportGUIButton.Text = "Teleport"  -- Button text
+
+local gimTeleButton = Instance.new("TextButton", screenGui)
+gimTeleButton.Size = UDim2.new(0, 75, 0, 38)
+gimTeleButton.Position = UDim2.new(0, 100, 0, 10)  -- Position for GimTele (swapped)
+gimTeleButton.Text = "GimTele"
+
+-- Helper functions
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+
+    for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
+        if otherPlayer ~= player and otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local distance = (character.HumanoidRootPart.Position - otherPlayer.Character.HumanoidRootPart.Position).magnitude
+            if distance < shortestDistance then
+                closestPlayer = otherPlayer
+                shortestDistance = distance
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+local function teleportBehindPlayer()
+    local closestPlayer = getClosestPlayer()
+    if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local targetHumanoidRootPart = closestPlayer.Character.HumanoidRootPart
+        local targetLookVector = targetHumanoidRootPart.CFrame.LookVector
+        local behindPosition = targetHumanoidRootPart.Position - (targetLookVector * distanceBehind)
+
+        humanoidRootPart.CFrame = CFrame.new(behindPosition, targetHumanoidRootPart.Position)
+    end
+end
+
+local function startTeleporting()
+    lastPosition = humanoidRootPart.Position
+    isTeleporting = true
+    teleportConnection = runService.Heartbeat:Connect(function()
+        if isTeleporting then
+            teleportBehindPlayer()
+        end
+    end)
+end
+
+local function stopTeleporting()
+    isTeleporting = false
+    if teleportConnection then
+        teleportConnection:Disconnect()
+    end
+end
+
+local function handleOldButton()
+    stopTeleporting() -- Stop teleporting
+    humanoidRootPart.CFrame = CFrame.new(savedPosition) -- Return to saved position
+end
+
+local function handleGimTele()
+    savedPosition = humanoidRootPart.Position -- Save current position
+end
+
+local function sequentialTeleport()
+    humanoidRootPart.CFrame = humanoidRootPart.CFrame + Vector3.new(0, -150, 0)
+    wait(0.05)
+    humanoidRootPart.CFrame = humanoidRootPart.CFrame + Vector3.new(0, -150, 0)
+    wait(0.05)
+
+    local connection
+    connection = runService.Heartbeat:Connect(function()
+        humanoidRootPart.CFrame = humanoidRootPart.CFrame + Vector3.new(0, -1, 0)
+    end)
+
+    wait(0.05)
+    connection:Disconnect()
+    humanoid:ChangeState(Enum.HumanoidStateType.Physics) -- Disable gravity, hover
+    humanoidRootPart.Anchored = true -- Keep character at current position
+    wait(3)
+    humanoidRootPart.Anchored = false -- Unanchor
+    humanoid:ChangeState(Enum.HumanoidStateType.Freefall) -- Restore gravity
+    humanoidRootPart.CFrame = originalPosition -- Return to original position
+end
+
+-- Button connections
+toggleMenuButton.MouseButton1Click:Connect(function()
+    screenGui.Enabled = not screenGui.Enabled
+end)
+
+teleportButton.MouseButton1Click:Connect(startTeleporting)
+stopTeleportButton.MouseButton1Click:Connect(stopTeleporting)
+oldButton.MouseButton1Click:Connect(handleOldButton)
+gimTeleButton.MouseButton1Click:Connect(handleGimTele)
+
+teleportGUIButton.MouseButton1Click:Connect(function()
+    sequentialTeleport()
+end)
+
+increaseDistanceButton.MouseButton1Click:Connect(function()
+    distanceBehind = distanceBehind + 0.5
+end)
+
+decreaseDistanceButton.MouseButton1Click:Connect(function()
+    distanceBehind = distanceBehind - 0.5
+end)
